@@ -57,8 +57,8 @@ export function ControlPanel({
       <TabsList variant="line" className="mb-3 w-full justify-start overflow-x-auto">
         <TabsTrigger value="signal">Signal</TabsTrigger>
         <TabsTrigger value="envelope">Envelope</TabsTrigger>
-        <TabsTrigger value="comp">Compressor</TabsTrigger>
-        <TabsTrigger value="gain">Digital + xfade</TabsTrigger>
+        <TabsTrigger value="comp">Comp</TabsTrigger>
+        <TabsTrigger value="gain">Xfade</TabsTrigger>
       </TabsList>
 
       <TabsContent value="signal" className="space-y-3">

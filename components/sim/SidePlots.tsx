@@ -124,7 +124,7 @@ export function TransferPlot({
 
       ctx.fillStyle = "rgba(226,232,240,0.75)";
       ctx.font = "10px ui-sans-serif, sans-serif";
-      ctx.fillText("Input dB → output dB", pad.l, 12);
+      ctx.fillText("in dB -> out dB", pad.l, 12);
     },
     [params, readout]
   );
@@ -343,15 +343,24 @@ export function GainReductionPlot({
       const ph = h - pad.t - pad.b;
       const t0 = viewStart;
       const t1 = Math.max(viewStart + 0.001, viewEnd);
-      const yMin = -Math.max(6, Math.abs(minInView(result.desiredGrDb, result, t0, t1)) + 1);
-      const yMax = 1;
+      const lo = minInView(result.desiredGrDb, result, t0, t1);
+      const hi = maxInView(result.desiredGrDb, result, t0, t1);
+      let yMin = lo - 0.4;
+      let yMax = Math.max(0.3, hi + 0.4);
+      if (yMax - yMin < 3) {
+        const mid = (yMax + yMin) / 2;
+        yMin = mid - 1.6;
+        yMax = mid + 1.6;
+      }
       const xOf = (t: number) => pad.l + ((t - t0) / (t1 - t0)) * pw;
       const yOf = (db: number) => pad.t + ((yMax - db) / (yMax - yMin)) * ph;
 
       ctx.strokeStyle = "rgba(148,163,184,0.15)";
       ctx.fillStyle = "rgba(148,163,184,0.7)";
       ctx.font = "9px ui-monospace, monospace";
-      for (let db = 0; db >= yMin; db -= 3) {
+      const tick = yMax - yMin > 8 ? 3 : 1;
+      const tick0 = Math.ceil(yMin / tick) * tick;
+      for (let db = tick0; db <= yMax; db += tick) {
         ctx.beginPath();
         ctx.moveTo(pad.l, yOf(db));
         ctx.lineTo(pad.l + pw, yOf(db));
@@ -424,6 +433,14 @@ function minInView(arr: Float32Array, result: SimResult, t0: number, t1: number)
   let m = 0;
   for (let i = i0; i < i1; i++) m = Math.min(m, arr[i]);
   return m;
+}
+
+function maxInView(arr: Float32Array, result: SimResult, t0: number, t1: number) {
+  const i0 = Math.max(0, Math.floor(t0 * result.sampleRate));
+  const i1 = Math.min(arr.length, Math.ceil(t1 * result.sampleRate));
+  let m = -1e9;
+  for (let i = i0; i < i1; i++) m = Math.max(m, arr[i]);
+  return m === -1e9 ? 0 : m;
 }
 
 export function liveAttenuation(readout: StageReadout, law: SimParams["attenuator"]["law"]) {

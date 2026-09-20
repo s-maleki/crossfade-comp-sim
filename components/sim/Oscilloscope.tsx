@@ -26,10 +26,12 @@ function strokeColumn(
   yMin: number,
   yMax: number,
   color: string,
-  width = 1.25
+  width = 1.25,
+  negate = false
 ) {
   const n = Math.max(1, i1 - i0);
   const span = yMax - yMin || 1;
+  const val = (i: number) => (negate ? -data[i] : data[i]);
   ctx.strokeStyle = color;
   ctx.lineWidth = width;
   ctx.beginPath();
@@ -38,7 +40,7 @@ function strokeColumn(
     for (let i = 0; i <= count; i++) {
       const idx = Math.min(data.length - 1, i0 + i);
       const x = x0 + (i / Math.max(1, count)) * w;
-      const y = y0 + ((yMax - data[idx]) / span) * h;
+      const y = y0 + ((yMax - val(idx)) / span) * h;
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -51,7 +53,7 @@ function strokeColumn(
       const aa = Math.max(0, a);
       const bb = Math.min(data.length, Math.max(aa + 1, b));
       for (let i = aa; i < bb; i++) {
-        const v = data[i];
+        const v = val(i);
         if (v < lo) lo = v;
         if (v > hi) hi = v;
       }
@@ -122,7 +124,7 @@ export function Oscilloscope({
       ctx.fillStyle = "#071018";
       ctx.fillRect(0, 0, W, H);
 
-      const labelW = 78;
+      const labelW = 70;
       const axisH = 22;
       const miniH = 30;
       const plotW = W - labelW - 10;
@@ -167,13 +169,12 @@ export function Oscilloscope({
 
       lanes.forEach((lane, li) => {
         const y = li * laneH;
-        const dim =
-          highlightTrace && highlightTrace !== lane.id && highlightTrace !== "attA"
-            ? 0.28
+          const dim =
+          highlightTrace &&
+          highlightTrace !== lane.id &&
+          !(highlightTrace === "chA" && (lane.id === "chA" || lane.id === "chB"))
+            ? 0.5
             : 1;
-        if (highlightTrace === "channels" && (lane.id === "chA" || lane.id === "chB")) {
-          /* keep */
-        }
         ctx.globalAlpha = dim;
         ctx.fillStyle = li % 2 === 0 ? "rgba(255,255,255,0.015)" : "transparent";
         ctx.fillRect(0, y, W, laneH);
@@ -286,23 +287,52 @@ export function Oscilloscope({
           lane.color,
           1.35
         );
+        if (lane.id === "input") {
+          strokeColumn(
+            ctx,
+            result.envelope,
+            i0,
+            i1,
+            plotX,
+            innerY,
+            plotW,
+            innerH,
+            yMin,
+            yMax,
+            "rgba(251,146,60,0.85)",
+            1.15
+          );
+          strokeColumn(
+            ctx,
+            result.envelope,
+            i0,
+            i1,
+            plotX,
+            innerY,
+            plotW,
+            innerH,
+            yMin,
+            yMax,
+            "rgba(251,146,60,0.85)",
+            1.15,
+            true
+          );
+        }
         ctx.restore();
 
-        ctx.fillStyle = "rgba(7,16,24,0.86)";
-        ctx.fillRect(0, y, labelW - 4, laneH);
+        ctx.fillStyle = "rgba(7,16,24,0.92)";
+        ctx.fillRect(0, y, labelW, laneH);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, y, labelW - 2, laneH);
+        ctx.clip();
         ctx.fillStyle = lane.color;
-        ctx.font = "600 10px ui-monospace, Geist Mono, monospace";
-        ctx.fillText(lane.short, 8, y + 14);
-        ctx.fillStyle = "rgba(226,232,240,0.55)";
-        ctx.font = "9px ui-sans-serif, Geist, sans-serif";
-        const lines = lane.label.split(" / ");
-        ctx.fillText(lines[0] ?? lane.label, 8, y + 26);
-        if (lines[1]) ctx.fillText(lines[1], 8, y + 37);
-
+        ctx.font = "600 11px ui-monospace, Geist Mono, monospace";
+        ctx.fillText(lane.short, 8, y + 16);
         const ci = sampleIndex(cursorTime, sr, result.n);
-        ctx.fillStyle = lane.color;
         ctx.font = "10px ui-monospace, Geist Mono, monospace";
         ctx.fillText(formatLaneValue(lane, prim[ci] ?? 0), 8, y + laneH - 8);
+        ctx.restore();
 
         ctx.globalAlpha = 1;
       });
@@ -410,7 +440,7 @@ export function Oscilloscope({
     const wrap = wrapRef.current;
     if (!wrap) return cursorTime;
     const rect = wrap.getBoundingClientRect();
-    const labelW = 78;
+    const labelW = 70;
     const plotW = rect.width - labelW - 10;
     const x = clientX - rect.left - labelW;
     const u = Math.max(0, Math.min(1, x / Math.max(1, plotW)));

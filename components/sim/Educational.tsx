@@ -18,8 +18,8 @@ export function EducationalPanel({
   return (
     <div className="rounded-xl bg-[#0b1520] p-4 ring-1 ring-violet-400/30">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="text-[11px] font-medium tracking-wide text-violet-300 uppercase">
-          Step through the chain
+        <div className="text-[11px] font-medium tracking-wide text-violet-300">
+          Step through
         </div>
         <div className="flex gap-1">
           <Button

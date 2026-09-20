@@ -144,8 +144,28 @@ export function laneYRange(
 ): { yMin: number; yMax: number } {
   if (lane.scale === "alpha") return { yMin: -0.05, yMax: 1.05 };
   if (lane.scale === "gr") {
-    const lo = -Math.max(params.compressor.maxGrDb, 6);
-    return { yMin: lo * 1.08, yMax: 1.5 };
+    let lo = 0;
+    let hi = 0;
+    const scan = (arr: Float32Array) => {
+      const a = Math.max(0, i0);
+      const b = Math.min(arr.length, i1);
+      for (let i = a; i < b; i++) {
+        const v = arr[i];
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+      }
+    };
+    scan(lane.primary(result));
+    const s = lane.secondary?.(result);
+    if (s) scan(s);
+    let yMin = lo - 0.35;
+    let yMax = hi + 0.35;
+    if (yMax - yMin < 3) {
+      const mid = (yMax + yMin) / 2;
+      yMin = mid - 1.6;
+      yMax = mid + 1.6;
+    }
+    return { yMin, yMax };
   }
 
   let peak = 0.05;
